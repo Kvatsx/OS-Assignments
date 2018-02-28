@@ -1,0 +1,221 @@
+diff -uNr linux-3.13/arch/x86/syscalls/syscall_64.tbl linux-3.13v2/arch/x86/syscalls/syscall_64.tbl
+--- linux-3.13/arch/x86/syscalls/syscall_64.tbl	2014-01-20 08:10:07.000000000 +0530
++++ linux-3.13v2/arch/x86/syscalls/syscall_64.tbl	2018-02-18 00:37:15.932731687 +0530
+@@ -320,6 +320,7 @@
+ 311	64	process_vm_writev	sys_process_vm_writev
+ 312	common	kcmp			sys_kcmp
+ 313	common	finit_module		sys_finit_module
++314	common	sh_task_info		sys_sh_task_info
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff -uNr linux-3.13/include/linux/syscalls.h linux-3.13v2/include/linux/syscalls.h
+--- linux-3.13/include/linux/syscalls.h	2014-01-20 08:10:07.000000000 +0530
++++ linux-3.13v2/include/linux/syscalls.h	2018-02-18 00:40:19.472453101 +0530
+@@ -847,4 +847,6 @@
+ asmlinkage long sys_kcmp(pid_t pid1, pid_t pid2, int type,
+ 			 unsigned long idx1, unsigned long idx2);
+ asmlinkage long sys_finit_module(int fd, const char __user *uargs, int flags);
++asmlinkage long sys_sh_task_info(int pid, char * file_name );
++
+ #endif
+diff -uNr linux-3.13/kernel/sys.c linux-3.13v2/kernel/sys.c
+--- linux-3.13/kernel/sys.c	2014-01-20 08:10:07.000000000 +0530
++++ linux-3.13v2/kernel/sys.c	2018-02-18 00:34:40.947270504 +0530
+@@ -60,6 +60,10 @@
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+ #include <asm/unistd.h>
++#include <linux/module.h>
++#include <linux/fcntl.h>
++#include <linux/init.h>
++#include <asm/errno.h>
+ 
+ #ifndef SET_UNALIGN_CTL
+ # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
+@@ -92,6 +96,9 @@
+ # define SET_TSC_CTL(a)		(-EINVAL)
+ #endif
+ 
++// Reference for implementing syscall:- Liu Yutao Blog.
++// ytliu.info/notes/linux/file_ops_in_kernel.html
++
+ /*
+  * this is where the system-wide overflow UID and GID are defined, for
+  * architectures that now have 32-bit UID/GID but didn't in the past
+@@ -160,6 +167,175 @@
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE2(sh_task_info, int, pid, char *, file_name)
++{
++	int retval = 0;
++	struct pid *pid_object;
++	struct task_struct *task_object;
++	
++	pid_object = find_get_pid(pid);
++	if ( pid_object == NULL )
++	{
++		printk("Null Pointer Error, Wrong Pid\n");
++		retval = -ESRCH;
++		printk("Error no: %d\n", retval);
++		printk("No Such Process");
++		goto out;
++	} 
++	task_object = pid_task(pid_object, PIDTYPE_PID);
++	printk("Name: %s\n" , task_object->comm);
++	printk("Pid: %ld\n", task_object->pid);
++
++ 	if ( pid > 0 )
++	{ 
++		printk("Parent Name: %s\n", task_object->parent->comm);
++		printk("Parent Pid: %ld\n", task_object->parent->pid);
++	}
++	else 
++	{
++		retval = -ESRCH;
++		printk("No Parent Process\n");
++		goto out;
++	}
++
++	printk("State: %ld\n", task_object->state);
++	printk("Priority: %ld\n", task_object->prio);
++
++	int fd;
++	mm_segment_t old_fs = get_fs();
++	set_fs(KERNEL_DS);
++	fd = sys_open(file_name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
++
++	if ( fd >= 0 )
++	{
++		char brr[1024];
++		int Len = sprintf(brr, "Name: %s\n", task_object->comm);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "PID: [%ld]\n", task_object->pid);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "TGID: [%ld]\n", task_object->tgid);
++		sys_write(fd, brr, Len);
++		
++
++		if ( pid > 0 )
++		{ 
++			Len = sprintf(brr, "Parent Name: %s\n", task_object->parent->comm);
++			sys_write(fd, brr, Len);
++		}
++		else
++		{
++			Len = sprintf(brr, "No Parent Process\n");
++			sys_write(fd, brr, Len);
++			retval = -ESRCH;
++			printk("No such process\n");
++			goto out;
++		}
++		Len = sprintf(brr, "Parent PID: [%ld]\n", task_object->parent->pid);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "State: %ld\n", task_object->state);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Prio: %d\n", task_object->prio);
++		sys_write(fd, brr, Len);
++	
++		Len = sprintf(brr, "Static_Prio: %d\n", task_object->static_prio);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Normal_Prio: %d\n", task_object->normal_prio);
++		sys_write(fd, brr, Len);
++		
++		Len = sprintf(brr, "Rt_Priority: %u\n", task_object->rt_priority);
++		sys_write(fd, brr, Len);
++		
++		Len = sprintf(brr, "On_cpu: %d\n", task_object->on_cpu);
++		sys_write(fd, brr, Len);
++		
++		// Sched_Entity
++		struct sched_entity abc  = (struct sched_entity)task_object->se;
++		Len = sprintf(brr, "Sched_entity->on_rq: %u\n", (unsigned int)abc.on_rq);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Sched_entity->exec_start: %llu\n", abc.exec_start);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Sched_entity->sum_exec_runtime: %llu\n", abc.sum_exec_runtime);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Sched_entity->vruntime %llu\n", abc.vruntime);
++		sys_write(fd, brr, Len);
++		
++		Len = sprintf(brr, "Sched_entity->prev_sum_exec_runtime %llu\n", abc.prev_sum_exec_runtime);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Sched_entity->nr_migrations %llu\n", abc.nr_migrations);
++		sys_write(fd, brr, Len);
++
++		// Thread_struct
++		struct thread_struct cba = (struct thread_struct)task_object->thread;
++		Len = sprintf(brr, "Thread_struct->sp0 %lu\n", (unsigned long)cba.sp0);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Thread_struct->sp %lu\n", (unsigned long)cba.sp);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Thread_struct->error_code %lu\n", (unsigned long)cba.error_code);
++		sys_write(fd, brr, Len);
++
++		Len = sprintf(brr, "Thread_struct->fpu_counter: %u\n", (unsigned int)cba.fpu_counter);
++		sys_write(fd, brr, Len);
++
++		// Blocked sigset_t
++		sigset_t sblock = task_object->blocked;
++		//unsigned long *p = sblock.sig;
++		int i=0;
++		Len = sprintf(brr, "Blocked: \n");
++		sys_write(fd, brr, Len);
++		
++		for(i=0; i < sizeof(sblock.sig)/sizeof(sblock.sig[0]); i++)
++		{
++			Len = sprintf(brr, "[%d] -->  %lu\n", i, sblock.sig[i]);
++			sys_write(fd, brr, Len);
++		}
++
++
++		// Real_blocked
++		sigset_t sreal = task_object->real_blocked;
++		//unsigned long *q = sreal.sig;
++		int j = 0;
++		Len = sprintf(brr, "Real_blocked: \n");
++		sys_write(fd, brr, Len);
++
++		for(j=0; j < sizeof(sreal.sig)/sizeof(sreal.sig[0]); j++)
++		{
++			Len = sprintf(brr, "[%d] -->  %lu\n", j, sreal.sig[j]);
++			sys_write(fd, brr, Len);
++		}
++		
++		//for ( int qw = 0; qw < sizeof(sreal.sig); qw++ )
++		//{
++		//	Len = sprintf(brr, "%lu\n", sreal.sig[qw]);
++		//	sys_write(fd, brr, Len);
++		//} 
++		
++
++	}
++	else
++	{
++		printk("Error Related to File Name: %s\n",file_name);
++		printk("Invalid argument\n");
++		retval = -EINVAL;
++	}
++	sys_close(fd);
++	set_fs(old_fs);
++
++out:	
++	return retval;
++}
++
++
+ SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
+ {
+ 	struct task_struct *g, *p;
