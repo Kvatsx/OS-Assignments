@@ -1,84 +1,85 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-
 #define PORT 5555
-#define MAXSIZE 1024
-
+#define BUFSIZE 1024
 int main(int argc, char const *argv[])
 {
-	fd_set Main;
-	int size;
-	int s,s2;
-	struct sockaddr_in local, remote;
-	socklen_t sock_size;
-	FD_ZERO(&Main);
-
-	if ( (s = socket(AF_INET, SOCK_STREAM, 0)) == -1 )
-	{
-		printf("Socket not created.\n");
-		return 0;
-	}
-	local.sin_family = AF_INET;
-	local.sin_port = htons(4950);
-	local.sin_addr.s_addr = INADDR_ANY;
-	memset(local.sin_zero, '\0', sizeof(local.sin_zero));
-
-	bind(s, (struct sockaddr *)&local, sizeof(struct sockaddr));
-	listen(s, 10);
-	size = s;
-	printf("Server waiting for clients.\n");
-	FD_SET(s, &Main);
-
-	while(1)
-	{
-		int i;
-		for ( i = 0; i <= size; i++ )
-		{
-			if ( FD_ISSET(i, &Main) )
-			{
-				if ( i == s )
-				{
-					sock_size = sizeof(struct sockaddr_in);
-					s2 = accept(s,(struct sockaddr *)&remote, &sock_size);
-					FD_SET(s2, &Main);
-					if ( s2 > size )
-					{
-						size = s2;
-					}
-					printf("Connected to client on port %d\n", ntohs(remote.sin_port));
-				}
-				else
-				{
-					int len;
-					char buff[MAXSIZE];
-					if ( (len = recv(i, buff, MAXSIZE, 0)) <= 0 )
-					{
-						printf("Socket not responding.\n");
-						close(i);
-						FD_CLR(i, &Main);
-					}
-					else
-					{
-						int j;
-						for ( j=0; j<= size; j++ )
-						{
-							if ( FD_ISSET(j, &Main) && j != s && j != i )
-							{
-								send(j, buff, strlen(buff), 0);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return 0;
+  fd_set master;
+  fd_set other;
+  int size, i;
+  int sockfd= 0;
+  struct sockaddr_in server, client;
+  FD_ZERO(&master);
+  FD_ZERO(&other);
+  int yes = 1;
+  if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    perror("Socket");
+    exit(1);
+  } 
+  server.sin_family = AF_INET;
+  server.sin_port = htons(5555);
+  server.sin_addr.s_addr = INADDR_ANY;
+  memset(server.sin_zero, '\0', sizeof server.sin_zero);
+  bind(sockfd, (struct sockaddr *)&server, sizeof(struct sockaddr));
+  listen(sockfd, 10);
+  printf("\nTCPServer Waiting for client on port 5555\n");
+  FD_SET(sockfd, &master);
+  size = sockfd;
+  while(1){
+    other = master;
+    select(size+1, &other, NULL, NULL, NULL);
+    for (i = 0; i <= size; i++){
+      if (FD_ISSET(i, &other)){
+        if (i == sockfd)
+        {
+          socklen_t socketlen;
+          int newsockfd;
+          socketlen = sizeof(struct sockaddr_in);
+          if((newsockfd = accept(sockfd, (struct sockaddr *)&client, &socketlen)) == -1) {
+            perror("accept");
+            exit(1);
+          }else {
+            FD_SET(newsockfd, &master);
+            if(newsockfd > size){
+              size = newsockfd;
+            }
+            printf("new connection from %s on port %d \n",inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+          }
+        }
+        else
+        {
+          int recieved, j;
+          char buffer[BUFSIZE], buf[BUFSIZE];
+          if ((recieved = recv(i, buffer, BUFSIZE, 0)) <= 0) {
+            if (recieved == 0) {
+              printf("socket %d hung up\n", i);
+            }else {
+              perror("recv");
+            }
+            close(i);
+            FD_CLR(i, &master);
+          }else { 
+            printf("%s\n", buffer);
+            for(j = 0; j <= size; j++){
+              if (FD_ISSET(j, &master)){
+                if (j != sockfd && j != i) {
+                  if (send(j, buffer, recieved, 0) == -1) {
+                    perror("send");
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return 0;
 }
