@@ -50,7 +50,7 @@ int main(int argc, char const *argv[])
             if(newsockfd > size){
               size = newsockfd;
             }
-            printf("new connection from %s on port %d \n",inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+            printf("new connection from port %d \n", ntohs(client.sin_port));
           }
         }
         else
