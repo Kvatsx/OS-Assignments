@@ -63,7 +63,7 @@ int main(int argc, char const *argv[])
 				else
 				{
 					int recieved, j;
-					char buffer[BUFSIZE], buf[BUFSIZE];
+					char buffer[BUFSIZE], buf[BUFSIZE], buffernew[BUFSIZE];
 					char port[10];
 					char input[2];
 					// char *in = (char *)&input;
@@ -113,17 +113,26 @@ int main(int argc, char const *argv[])
 									break;
 								}
 							}
-							if ( index != -1 )
+							if ( index != -1 && htons(client.sin_port)!= ports[index])
 							{
 								printf("buffer: %s\n", &buffer);
-								if (send(fds[index], buffer, recieved, 0) == -1) {
+								//printf("B=%d\nport=%d\n",htons(client.sin_port),ports[ij] );
+								sprintf(buffernew,"%d says: %s",ports[index], buffer);
+								if (send(fds[index], buffernew, recieved+12, 0) == -1) {
 									perror("send");
+								}
+								else{
+									send(fds[index],"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
 								}
 								printf("Message send to the client.\n");
 							}
 							else
-							{
-								printf("\n Wrong port number\n");
+							{	if(htons(client.sin_port)== ports[index]){
+									send(fds[index],"Error: port number same as client", 33,0);
+									send(fds[index],"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
+								}
+								else
+									printf("\n Wrong port number\n");
 							}
 						}
 					}
@@ -143,8 +152,13 @@ int main(int argc, char const *argv[])
 							for(j = 0; j <= size; j++){
 								if (FD_ISSET(j, &master)){
 									if (j != sockfd && j != i) {
-										if (send(j, buffer, recieved, 0) == -1) {
+										sprintf(buffernew,"%d says: %s", i,buffer);
+										send(j,"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
+										if (send(j, buffernew, recieved+12, 0) == -1) {
 											perror("send");
+										}
+										else{
+											send(j,"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
 										}
 									}
 								}

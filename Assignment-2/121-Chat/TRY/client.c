@@ -28,6 +28,8 @@ int main(int argc, char const *argv[])
   FD_SET(0, &master);
   FD_SET(sockfd, &master);
   size = sockfd;
+  int times = 1;
+  printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n");
   while(1){
 	other = master;
 	select(size+1, &other, NULL, NULL, NULL);
@@ -35,12 +37,14 @@ int main(int argc, char const *argv[])
 	for(i=0; i <= size; i++ )
 	{
 		if(FD_ISSET(i, &other))
-		{
+		{	//printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n");
 			char buffer_out[BUFSIZE];
 			char buffer_in[BUFSIZE];
 			int recieved;
 			if (i == 0){
-				printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n");
+				
+				
+				
 				scanf("%s", input);
 				if ( strcmp(input, "1") == 0 )
 				{
@@ -58,10 +62,15 @@ int main(int argc, char const *argv[])
 					send(sockfd, input, sizeof(input), 0);
 			  		send(sockfd, buffer_out, strlen(buffer_out), 0);
 				}
-				else
+				else if( strcmp(input , "3") == 0)
 				{
 					exit(1);
 				}
+				else{
+					printf("INCORRECT INPUT\n");
+					printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit");
+				}
+				printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n");
 			}
 			else {
 				printf("Waiting for clients message.\n");
