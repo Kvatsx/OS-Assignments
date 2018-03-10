@@ -116,7 +116,7 @@ int main(int argc, char const *argv[])
               if ( index != -1 )
               {
                 printf("buffer: %s\n", &buffer);
-                sprintf(buffernew,"%d says: %s",ports[index], buffer)
+                sprintf(buffernew,"%d says: %s",ports[index], buffer);
                 if (send(fds[index], buffernew, recieved+12, 0) == -1) {
                   perror("send");
                 }
