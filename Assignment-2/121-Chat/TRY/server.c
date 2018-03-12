@@ -66,6 +66,8 @@ int main(int argc, char const *argv[])
 					char buffer[BUFSIZE], buf[BUFSIZE], buffernew[BUFSIZE];
 					char port[10];
 					char input[2];
+					memset(&buffer[0], '\0', BUFSIZE);
+					memset(&buffernew[0], '\0', BUFSIZE);
 					// char *in = (char *)&input;
 					// printf("Input initial: %s\n", input);
 					recv(i, input, sizeof(input), 0);
@@ -113,21 +115,31 @@ int main(int argc, char const *argv[])
 									break;
 								}
 							}
-							if ( index != -1 && htons(client.sin_port)!= ports[index])
+							if ( index != -1 && i!= fds[index])
 							{
 								printf("buffer: %s\n", &buffer);
+								for ( ij=0; ij<connections; ij++ )
+								{
+									if ( fds[ij] == i )
+									{
+										break;
+									}
+								}
 								//printf("B=%d\nport=%d\n",htons(client.sin_port),ports[ij] );
-								sprintf(buffernew,"%d says: %s",ports[index], buffer);
-								if (send(fds[index], buffernew, recieved+12, 0) == -1) {
+								int len = sprintf(buffernew,"%d says: %s",ports[ij], buffer);
+								if (send(fds[index], buffernew, len, 0) == -1) {
 									perror("send");
 								}
-								else{
-									send(fds[index],"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
-								}
+								// else{
+								// 	send(fds[index],"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
+								// }
 								printf("Message send to the client.\n");
 							}
 							else
-							{	if(htons(client.sin_port)== ports[index]){
+							{
+								if ( i == fds[index] )
+								{
+								//	if(htons(client.sin_port)== ports[index]){
 									send(fds[index],"Error: port number same as client", 33,0);
 									send(fds[index],"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
 								}
@@ -148,17 +160,26 @@ int main(int argc, char const *argv[])
 							FD_CLR(i, &master);
 						}
 						else { 
-							printf("%s\n", buffer);
+							printf("Messg-2-> %s\n", buffer);
 							for(j = 0; j <= size; j++){
 								if (FD_ISSET(j, &master)){
 									if (j != sockfd && j != i) {
-										sprintf(buffernew,"%d says: %s", i,buffer);
-										send(j,"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
-										if (send(j, buffernew, recieved+12, 0) == -1) {
+										int ij;
+										for ( ij=0; ij<connections; ij++ )
+										{
+											if ( fds[ij] == i )
+											{
+												break;
+											}
+										}
+										int len = sprintf(buffernew,"%d says: %s", ports[ij],buffer);
+										// send(j,"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
+										if (send(j, buffernew, len, 0) == -1) {
 											perror("send");
 										}
 										else{
-											send(j,"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
+											printf("Sending Menu:\n");
+											// send(j,"\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n",114,0);
 										}
 									}
 								}

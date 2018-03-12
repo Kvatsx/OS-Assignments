@@ -46,19 +46,28 @@ int main(int argc, char const *argv[])
 				
 				
 				scanf("%s", input);
+				// fgets(input, 2, stdin);
+				printf("input: %s\n", input);
+				memset(&buffer_out[0], '\0', BUFSIZE);
 				if ( strcmp(input, "1") == 0 )
 				{
 					char  port[10];
-					scanf("%s", port);
-					scanf("%s", buffer_out);
+					// scanf("%s", port);
+					fgets(port, 10, stdin);
+					printf("port: %s\n", port);
+					// scanf("%s", buffer_out);
+					fgets(buffer_out, BUFSIZE, stdin);
+					printf("buffer_out: %s\n", buffer_out);
 					send(sockfd, input, sizeof(input), 0);
 					send(sockfd, port, sizeof(port), 0);
 			  		send(sockfd, buffer_out, strlen(buffer_out), 0);
 				}
 				else if ( strcmp(input, "2") == 0 )
 				{
-					// fgets(buffer_out, BUFSIZE, stdin);
-					scanf("%s", &buffer_out);
+					// printf("Enter your message: ");
+					fgets(buffer_out, BUFSIZE, stdin);
+					printf("Your message: %s\n", buffer_out);
+					// scanf("%s", &buffer_out);
 					send(sockfd, input, sizeof(input), 0);
 			  		send(sockfd, buffer_out, strlen(buffer_out), 0);
 				}
@@ -68,7 +77,7 @@ int main(int argc, char const *argv[])
 				}
 				else{
 					printf("INCORRECT INPUT\n");
-					printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit");
+					// printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit");
 				}
 				printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n");
 			}
@@ -77,6 +86,7 @@ int main(int argc, char const *argv[])
 			  	recieved = recv(sockfd, buffer_in, BUFSIZE, 0);
 			  	buffer_in[recieved] = '\0';
 			  	printf("%s\n" , buffer_in);
+			  	printf("\nMenu\n1) To send to a client followed by port number and message.\n2) To send message to all clients.\n3) Exit\n");
 			}
 		}
 	}
