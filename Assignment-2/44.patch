@@ -1,0 +1,130 @@
+diff --git a/linux-3.19/arch/x86/syscalls/syscall_64.tbl b/linux-3.19/arch/x86/syscalls/syscall_64.tbl
+index 8d656fb..99db159 100644
+--- a/linux-3.19/arch/x86/syscalls/syscall_64.tbl
++++ b/linux-3.19/arch/x86/syscalls/syscall_64.tbl
+@@ -329,6 +329,7 @@
+ 320	common	kexec_file_load		sys_kexec_file_load
+ 321	common	bpf			sys_bpf
+ 322	64	execveat		stub_execveat
++323	common	rtnice			sys_rtnice
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/linux-3.19/include/linux/syscalls.h b/linux-3.19/include/linux/syscalls.h
+index 85893d7..d6954f6 100644
+--- a/linux-3.19/include/linux/syscalls.h
++++ b/linux-3.19/include/linux/syscalls.h
+@@ -882,4 +882,6 @@ asmlinkage long sys_execveat(int dfd, const char __user *filename,
+ 			const char __user *const __user *argv,
+ 			const char __user *const __user *envp, int flags);
+ 
++asmlinkage long sys_rtnice(int pid, u64 time);
++
+ #endif
+diff --git a/linux-3.19/kernel/sched/core.c b/linux-3.19/kernel/sched/core.c
+index 5eab11d..76192c1 100644
+--- a/linux-3.19/kernel/sched/core.c
++++ b/linux-3.19/kernel/sched/core.c
+@@ -1836,6 +1836,7 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
+ 	p->se.prev_sum_exec_runtime	= 0;
+ 	p->se.nr_migrations		= 0;
+ 	p->se.vruntime			= 0;
++	p->se.soft_time			= 0;
+ 	INIT_LIST_HEAD(&p->se.group_node);
+ 
+ #ifdef CONFIG_SCHEDSTATS
+diff --git a/linux-3.19/kernel/sched/fair.c b/linux-3.19/kernel/sched/fair.c
+index fe331fc..9dcaaab 100644
+--- a/linux-3.19/kernel/sched/fair.c
++++ b/linux-3.19/kernel/sched/fair.c
+@@ -456,6 +456,8 @@ static inline u64 min_vruntime(u64 min_vruntime, u64 vruntime)
+ static inline int entity_before(struct sched_entity *a,
+ 				struct sched_entity *b)
+ {
++	//if ( a->soft_time != b->soft_time )
++	//	return (s64)(a->soft_time - b->soft_time) > 0; 
+ 	return (s64)(a->vruntime - b->vruntime) < 0;
+ }
+ 
+@@ -701,6 +703,19 @@ static void update_curr(struct cfs_rq *cfs_rq)
+ 		return;
+ 
+ 	delta_exec = now - curr->exec_start;
++
++	// Updating Soft_time
++	if ( curr->soft_time > delta_exec )
++	{ 
++		curr->soft_time = curr->soft_time - delta_exec;
++		printk("curr->soft_time = %llu\n", curr->soft_time);
++	}
++	else
++	{
++		curr->soft_time = 0;
++	}	
++	// Done
++
+ 	if (unlikely((s64)delta_exec <= 0))
+ 		return;
+ 
+@@ -3248,6 +3263,20 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+ 		se = cfs_rq->next;
+ 
+ 	clear_buddies(cfs_rq, se);
++	
++	// Ass2 Changes
++	u64 Value = 0;
++	struct task_struct *task_object;
++	
++	for_each_process(task_object)
++	{
++		if ( task_object->se.on_rq && task_object->se.soft_time > Value )
++		{
++			Value = task_object->se.soft_time;
++			se = &(task_object->se);
++		}
++	}	
++	// Done
+ 
+ 	return se;
+ }
+diff --git a/linux-3.19/kernel/sys.c b/linux-3.19/kernel/sys.c
+index ea9c881..eb5a973 100644
+--- a/linux-3.19/kernel/sys.c
++++ b/linux-3.19/kernel/sys.c
+@@ -60,6 +60,9 @@
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+ #include <asm/unistd.h>
++#include <linux/module.h>
++#include <linux/fcntl.h>
++#include <linux/init.h>
+ 
+ #ifndef SET_UNALIGN_CTL
+ # define SET_UNALIGN_CTL(a, b)	(-EINVAL)
+@@ -166,6 +169,26 @@ out:
+ 	return error;
+ }
+ 
++SYSCALL_DEFINE2(rtnice, int, pid, u64, time)
++{
++	struct pid *pid_object;
++	struct task_struct *task_object;
++	pid_object = find_get_pid(pid);
++	if ( pid_object == NULL )
++	{
++		printk("Null Pointer Error, Wrong PId\n");
++		return -ESRCH;
++	}
++	
++	task_object = pid_task(pid_object, PIDTYPE_PID);
++	printk("Name: %s\n", task_object->comm);
++	
++	// sched_entity
++	task_object->se.soft_time = time;
++	printk("soft_time: %lld\n", task_object->se.soft_time);
++	return 0; 	
++}
++
+ SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
+ {
+ 	struct task_struct *g, *p;
