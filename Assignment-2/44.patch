@@ -128,3 +128,51 @@ index ea9c881..eb5a973 100644
  SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
  {
  	struct task_struct *g, *p;
+diff --git a/test/Makefile b/test/Makefile
+new file mode 100644
+index 0000000..76da3e4
+--- /dev/null
++++ b/test/Makefile
+@@ -0,0 +1,6 @@
++all:
++	gcc test.c -o test
++	./test
++
++clean:
++	rm test
+diff --git a/test/test.c b/test/test.c
+new file mode 100644
+index 0000000..71b4421
+--- /dev/null
++++ b/test/test.c
+@@ -0,0 +1,30 @@
++#include <stdio.h>
++#include <stdio.h>
++#include <linux/kernel.h>
++#include <sys/syscall.h>
++#include <time.h>
++
++#define sys 323
++
++int main(){
++	int pid;
++	printf("Enter Pid: ");
++	scanf("%d", &pid);
++
++	clock_t START, END;
++	double CPU_TIME_USED;
++	START = clock();
++	long int s = syscall(sys, pid, 1000000);
++	
++	int i, fact = 1, num = 1000000000;
++	while( num > 0 )
++	{
++		fact = fact*num;
++		num--;
++	}
++	END = clock();
++	CPU_TIME_USED = ((double) END - START) / CLOCKS_PER_SEC;
++	printf("Time used: %lf\n", CPU_TIME_USED);
++	printf("Returned Value: %ld\n", s);
++	return 0;
++}
