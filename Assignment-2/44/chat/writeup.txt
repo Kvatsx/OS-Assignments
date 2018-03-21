@@ -1,0 +1,27 @@
+﻿Operating System
+Assignment 2
+
+
+Kaustav Vats 2016048
+Saksham Vohra 2016085
+QUESTION 1
+
+
+In the given problem statement, we need to implement the chat for group and personal chats.
+For both group and personal chat, we have a client and a server, in which the client simply selects the type of message he has to send. The message is received by the server who used select function to identify which user has sent the message. The main input to the select call are the set of file descriptors and the buffer which contains the input. Buffer contains the information about the type of message and the port of the receiver in the case of personal chat.
+
+
+In the case of personal chat, the message is sent to the specific port number mentioned by the sender by iterating over the set of filedescriptors. While in the case of Group chat, we send the message to everyone in the set of file descriptors except the sender itself.
+
+The user is expected to provide input in the following way:
+For personal chat:      1 receiver’s_port_number
+                        message
+For group chat:        2 message
+
+
+ERRORS HANDLED:
+
+
+1. Wrong port number
+2. Invalid message type
+3. Cannot send personal message to itself

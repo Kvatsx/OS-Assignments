@@ -1,0 +1,25 @@
+Kaustav Vats 2016048
+Saksham Vohra 2016085
+QUESTION 2
+
+
+
+
+We defined our system call in the file sys.c, which is located in the /kernel/ folder present in the extracted folder of our kernel.
+We defined the function in the following way : sys_definex(), where x is the number of parameters that are passed to the system call.
+In our case, we defined it as sys_define2(rtnice,int,pid,u64,time), here x=2 since we have 2 parameters ie: pid and soft time guarantee  . The first parameter in the definition is compulsory and is the name of the system call implemented. 
+
+
+To retrieve the pid_struct of the task with the given pid, we used a function called find_get_pid, which returns struct pid, through which we can access the various data fields of a pid through the function pid_task which returns the task_struct which in turn contains the sched_entity of the process in which we need to assign the soft_time passed as the second argument.
+
+
+To add the data variable soft_time in the task_struct, we need to create a new data variable in the file sched.h, and need to initialize it to 0 in core.c .
+
+
+To guarantee that the process with the given pid runs for the given time, we need to first modify the scheduler in such a way that the scheduler always picks a task with higher soft_time , and if two processes have the same soft_time, then the priority should be given to the task with lower vruntime. To do this, we need to change the pich_next_entity method in the file fair.c. Before the function returns a sched entity, we need to check for each process if the current process has higher soft_time, if the condition is true, then we just carry on and return the current sched_entity, else we replace the current sched_entity with the process’ sched_entity that has higher soft_time.
+We also need to deduct the amount of time the program has run from the soft_time, we achieve this by decrementing the delta_exec value(amount of time in nanoseconds) from the soft_time, if the value of delta_exec is greater than or equal to the amount of soft_time, then we set the soft_time value to 0(since it unsigned).
+
+
+Error handled: 
+1. Wrong PID
+2. Invalid time argument
