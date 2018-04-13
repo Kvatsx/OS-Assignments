@@ -1,7 +1,9 @@
+OBJS = shared_memory
+
 all:
-	gcc sm1.c -o sm1
-	gcc sm2.c -o sm2
+	gcc shared_memory.c -o shared_memory
+
+.PHONY: clean
 
 clean:
-	rm sm1
-	rm sm2
+	rm -f $(OBJS)
