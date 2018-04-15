@@ -1,3 +1,3 @@
-Bootloader started in 16 bit mode(Real Mode) and then switched to 32 bit mode which is also called protected mode.
-We set enabled A20 bit and setup gdt table to shift to 32 bit mode. And after that to 64 bit mode(Long Mode). Enabled VGA mode
+Bootloader booted in 16 bit mode and then switched to 32 bit mode which is also called protected mode.
+We set enabled A20 bit and setup gdt table to shift to 32 bit mode. And after that to 64 bit mode. Enabled VGA mode
 then printed hello world in that mode. Code is explained with comments in .asm file.
