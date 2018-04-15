@@ -40,8 +40,8 @@ pointer:
 CODE_SEG equ gdt_code - gdt_start
 DATA_SEG equ gdt_data - gdt_start
 
-Message: db "Hello-World!   0x14DC090000", 0
-cr: db "0x14DC090000", 0
+Message: db "Hello-World!   0x01000", 0
+cr: db "0x01000", 0
 
 
 bits 32
