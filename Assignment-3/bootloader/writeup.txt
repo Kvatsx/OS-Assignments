@@ -1,3 +1,19 @@
-Bootloader booted in 16 bit mode and then switched to 32 bit mode which is also called protected mode.
-We set enabled A20 bit and setup gdt table to shift to 32 bit mode. And after that to 64 bit mode. Enabled VGA mode
-then printed hello world in that mode. Code is explained with comments in .asm file.
+// Kaustav Vats
+// Saksham Vohra
+Real Mode:-
+First thing our computer load is BIOS in memory. The BIOS then initialize and self test the hardware then load 512 bytes in memory. If last two bytes equal then jumps to 0x7c00 and transfer control to bootloader. At this point cpu runs in 16bit address space. That means that bootloader need to stay within the limits otherwise an uninitialised memory error will be generated.
+
+Protected Mode:-
+You can call BIOS functions via interrupts, in 16 bit instructions and address up to 1 MB. To access more than 1 MB of memoery we need to enable A20 address line. Next we will enable 32 bit instructions and access to the full bit 32 registers, after entering protected mode. But first we need to set Global Descriptor table which will define 32 bit segment. GDT table can be loaded with instructions [lgdt]. In GDT we need to setup 3 parts: a null segment, a code segment and a data segment. After setting up we can switch to 32 bit mode.
+
+Long Mode:- 
+We can enter long mode directly from a real mode or from protected mode. However we switched from protected mode to long mode. 
+First thing we need to do is enable A20 address line, if not enabled.
+Then we need to setup paging. We should enable PAE-paging by setting the PAE-bit in the fourth control register.
+Since we are switching from protected mode. If gdt table not initialised then we must initialise it.
+After swtitching to long mode we setup all registers and data descriptors.
+After this we printed Hello world! and cr3 register value.
+
+Writing to the VGA Text Buffer:-
+This is a memory mapped to location 0xb8000. We just need to add a command in our code to print to this VGA buffer.
+[mov ebx, 0xb8000]

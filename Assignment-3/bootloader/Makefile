@@ -1,4 +1,8 @@
 all:
+	dd status=noxfer conv=notrunc if=boot2.bin of=boot2.flp
+	qemu-system-i386 -fda boot2.flp
+
+compile:
 	nasm -f bin -o boot2.bin boot2.asm
 	dd status=noxfer conv=notrunc if=boot2.bin of=boot2.flp
 	qemu-system-i386 -fda boot2.flp
