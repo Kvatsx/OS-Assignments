@@ -1,0 +1,1 @@
+cmd_/home/kvats/Desktop/Assignment4/enc_dev.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/kvats/Desktop/Assignment4/enc_dev.ko /home/kvats/Desktop/Assignment4/enc_dev.o /home/kvats/Desktop/Assignment4/enc_dev.mod.o

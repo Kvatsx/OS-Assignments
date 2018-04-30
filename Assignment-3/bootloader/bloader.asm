@@ -11,8 +11,8 @@ jmp	main				; go to start
 ;	Preprocessor directives
 ;*******************************************************
  
-;include "stdio.inc"			; basic i/o routines
-;%include "Gdt.inc"			; Gdt routines
+%include "stdio.inc"			; basic i/o routines
+%include "Gdt.inc"			; Gdt routines
  
 ;*******************************************************
 ;	Data Section
@@ -71,67 +71,10 @@ main:
 	; Note: Do NOT re-enable interrupts! Doing so will triple fault!
 	; We will fix this in Stage 3.
  
-Puts16:
-		pusha				; save registers
-.Loop1:
-		lodsb				; load next byte from string from SI to AL
-		or	al, al			; Does AL=0?
-		jz	Puts16Done		; Yep, null terminator found-bail out
-		mov	ah, 0eh			; Nope-Print the character
-		int	10h			; invoke BIOS
-		jmp	.Loop1			; Repeat until null terminator found
-Puts16Done:
-		popa				; restore registers
-		ret				; we are done, so return
- 
-;*******************************************
-; InstallGDT()
-;	- Install our GDT
-;*******************************************
- 
-InstallGDT:
- 
-	cli				; clear interrupts
-	pusha				; save registers
-	lgdt 	[toc]			; load GDT into GDTR
-	sti				; enable interrupts
-	popa				; restore registers
-	ret				; All done!
- 
-;*******************************************
-; Global Descriptor Table (GDT)
-;*******************************************
- 
-gdt_data: 
-	dd 0 				; null descriptor
-	dd 0 
- 
-; gdt code:				; code descriptor
-	dw 0FFFFh 			; limit low
-	dw 0 				; base low
-	db 0 				; base middle
-	db 10011010b 			; access
-	db 11001111b 			; granularity
-	db 0 				; base high
- 
-; gdt data:				; data descriptor
-	dw 0FFFFh 			; limit low (Same as code)
-	dw 0 				; base low
-	db 0 				; base middle
-	db 10010010b 			; access
-	db 11001111b 			; granularity
-	db 0				; base high
- 
-end_of_gdt:
-toc: 
-	dw end_of_gdt - gdt_data - 1 	; limit (Size of GDT)
-	dd gdt_data 			; base of GDT
-	
-
 ;******************************************************
 ;	ENTRY POINT FOR STAGE 3
 ;******************************************************
-
+ 
 bits 32					; Welcome to the 32 bit world!
  
 Stage3:

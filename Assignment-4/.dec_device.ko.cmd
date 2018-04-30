@@ -1,0 +1,1 @@
+cmd_/home/kvats/Desktop/Assignment4/dec_device.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/kvats/Desktop/Assignment4/dec_device.ko /home/kvats/Desktop/Assignment4/dec_device.o /home/kvats/Desktop/Assignment4/dec_device.mod.o

@@ -44,8 +44,8 @@ int main()
     shared_stuff = (struct shared_use_st *)shared_memory;
     shared_stuff->written_by_you = 0;
     while(running) {
-    	printf("shared_stuff->written_by_you %d\n", shared_stuff->written_by_you);
         if (shared_stuff->written_by_you) {
+        	printf("shared_stuff->written_by_you %d\n", shared_stuff->written_by_you);
             printf("You wrote: %s", shared_stuff->some_text);
             sleep( rand() % 4 ); /* make the other process wait for us ! */
             shared_stuff->written_by_you = 0;
